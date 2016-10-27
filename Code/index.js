@@ -4,7 +4,7 @@
  *
  * When deploying an AWS stack with CloudFormation, it can be helpful to write configuration data to a file, eg perhaps you have
  * CloudFormation template parameters you want to persist to an S3 file to configure the application being deployed.  Another 
- * option can be to copy a particular configuration fil eto a target file, eg you may have dev, uat and prod versions of a config file.
+ * option can be to copy a particular configuration file to a target file, eg you may have dev, uat and prod versions of a config file.
  * The following CloudFormation template demonstrates this:
  *
  * https://s3-ap-northeast-1.amazonaws.com/au-com-thinkronicity-opencode-apne1/au-com-thinkronicity-PutS3File-Sample.template *
