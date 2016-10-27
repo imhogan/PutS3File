@@ -2,7 +2,7 @@
  * Node.js Lambda backed AWS CloudFormation Custom Resource to create an S3 configuration file, either
  * by putting parameter data from the CloudFormation template or copying a source S3 file. 
  *
- * When deploying an AWS stack with CloudFormation, it can be helpful to wrtie configuration data to a file, eg perhaps you have
+ * When deploying an AWS stack with CloudFormation, it can be helpful to write configuration data to a file, eg perhaps you have
  * CloudFormation template parameters you want to persist to an S3 file to configure the application being deployed.  Another 
  * option can be to copy a particular configuration fil eto a target file, eg you may have dev, uat and prod versions of a config file.
  * The following CloudFormation template demonstrates this:
