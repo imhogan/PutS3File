@@ -1,0 +1,273 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Demonstrate PutS3File custom resource - built by Ian Hogan.\nThis sample will put parameter data to S3Bucket/S3PutKey.xml and S3Bucket/S3PutKey_archive.xml\n and will will copy S3Bucket/S3CopyKey-TargetEnvironment to S3Bucket/S3CopyKey",
+    "Parameters": {
+        "S3PutFileKey": {
+            "Description": "Zip file for S3 Put File function",
+            "Type": "String",
+            "Default": "au-com-thinkronicity-PutS3File-V1.0.zip"
+        },
+        "SomeConfigurationParameter": {
+            "Description": "Sample parameter to be written to the configuration file",
+            "Type": "String",
+            "Default": "Parameter written by PUTS3File"
+        },
+        "S3Bucket": {
+            "Description": "Bucket for configuration file",
+            "Type": "String",
+            "Default": "some-bucket-name"
+        },
+        "S3PutKey": {
+            "Description": "Key for configuration file to put data to",
+            "Type": "String",
+            "Default": "some/key/path"
+        },
+        "S3CopyKey": {
+            "Description": "Key for configuration file",
+            "Type": "String",
+            "Default": "some/key/path"
+        },
+        "TargetEnvironment": {
+          "Description": "Target environment - dev, uat or prod, default is dev",
+          "Type": "String",
+          "AllowedValues": [
+            "dev",
+            "uat",
+            "prod"
+          ],
+          "Default": "dev"
+        }
+    },
+  "Mappings": {
+    "AWSRegion2Bucket": {
+      "us-east-1": {
+        "OpenCode": "au-com-thinkronicity-opencode-usea1",
+        "ClientCode": "au-com-thinkronicity-clientcode-apse2"
+      },
+      "us-east-2": {
+        "OpenCode": "au-com-thinkronicity-opencode-usea2",
+        "ClientCode": "au-com-thinkronicity-clientcode-apse2"
+      },
+      "us-west-1": {
+        "OpenCode": "au-com-thinkronicity-opencode-uswe1",
+        "ClientCode": "au-com-thinkronicity-clientcode-apse2"
+      },
+      "us-west-2": {
+        "OpenCode": "au-com-thinkronicity-opencode-uswe2",
+        "ClientCode": "au-com-thinkronicity-clientcode-apse2"
+      },
+      "sa-east-1": {
+        "OpenCode": "au-com-thinkronicity-opencode-saea1",
+        "ClientCode": "au-com-thinkronicity-clientcode-apse2"
+      },
+      "ap-northeast-1": {
+        "OpenCode": "au-com-thinkronicity-opencode-apne1",
+        "ClientCode": "au-com-thinkronicity-clientcode-apse2"
+      },
+      "ap-northeast-2": {
+        "OpenCode": "au-com-thinkronicity-opencode-apne2",
+        "ClientCode": "au-com-thinkronicity-clientcode-apse2"
+      },
+      "ap-south-1": {
+        "OpenCode": "au-com-thinkronicity-opencode-aps1",
+        "ClientCode": "au-com-thinkronicity-clientcode-apse2"
+      },
+      "ap-southeast-1": {
+        "OpenCode": "au-com-thinkronicity-opencode-apse1",
+        "ClientCode": "au-com-thinkronicity-clientcode-apse2"
+      },
+      "ap-southeast-2": {
+        "OpenCode": "au-com-thinkronicity-opencode-apse2",
+        "ClientCode": "au-com-thinkronicity-clientcode-apse2"
+      },
+      "eu-central-1": {
+        "OpenCode": "au-com-thinkronicity-opencode-euce1",
+        "ClientCode": "au-com-thinkronicity-clientcode-apse2"
+      },
+      "eu-west-1": {
+        "OpenCode": "au-com-thinkronicity-opencode-euwe1",
+        "ClientCode": "au-com-thinkronicity-clientcode-apse2"
+      }
+    }
+  },
+    "Resources": {
+        "LambdaExecutionRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {"Service": "lambda.amazonaws.com"},
+                            "Action": "sts:AssumeRole"
+                        }
+                    ]
+                },
+                "Path": "/some/policy/path/",
+                "Policies": [{
+                    "PolicyName": "AccessTargetS3Bucket",
+                    "PolicyDocument": {
+                        "Version": "2012-10-17",
+                        "Statement": [
+                            {
+                                "Effect": "Allow",
+                                "Action": ["s3:*"],
+                                "Resource": {
+                                "Fn::Join": [
+                                  "",
+                                  [
+                                    "arn:aws:s3:::",
+                                    {
+                                      "Ref": "S3Bucket"
+                                    },
+                                    "/*"
+                                  ]
+                                ]
+                              }
+                            },
+                            {
+                                "Effect": "Allow",
+                                "Action": [
+                                    "logs:CreateLogGroup",
+                                    "logs:CreateLogStream",
+                                    "logs:PutLogEvents"
+                                ],
+                                "Resource": "arn:aws:logs:*:*:*"
+                            }
+                        ]
+                    }
+                }]
+            }
+        },
+        "S3PutFileLambda": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+                "Code": {
+                    "S3Bucket": {"Fn::FindInMap": [
+                        "AWSRegion2Bucket",
+                        {"Ref": "AWS::Region"},
+                        "OpenCode"
+                    ]},
+                    "S3Key": {"Ref": "S3PutFileKey"}
+                },
+                "Runtime": "nodejs8.10",
+                "Handler": "index.handler",
+                "Timeout": "30",
+                "Description": "CloudFormation S3 Put File Helper - see https://github.com/imhogan/PutS3File for details.",
+                "MemorySize": 128,
+                "Role": {"Fn::GetAtt": [
+                    "LambdaExecutionRole",
+                    "Arn"
+                ]}
+            }
+        },
+        "SavePropertiesForEnvironment": {
+            "Type": "Custom::S3FilePut",
+            "Properties": {
+                "ServiceToken": {"Fn::GetAtt": [
+                    "S3PutFileLambda",
+                    "Arn"
+                ]},
+                "Source": {
+                    "filetext":  {"Fn::Join": [
+                        "",
+                        [
+                            "<?xml version='1.0' encoding='UTF-8'?>",
+                            "<Parameters>",
+                            "<SomeConfigurationParameter>",
+                            {"Ref": "SomeConfigurationParameter"},
+                            "</SomeConfigurationParameter>",
+                            "<Environment>",
+                            {"Ref": "TargetEnvironment"},
+                            "</Environment>",
+                            "</Parameters>"
+                        ]
+                    ]},
+                    "contentType": "application/xml"
+                },
+                "Target": {
+                    "Bucket": {"Ref": "S3Bucket"},
+                    "Key": {"Fn::Join": [
+                        "",
+                            [
+                                {"Ref": "S3PutKey"},
+                                ".xml"
+                            ]
+                        ]}
+                },
+                "Debug": "true"
+            }
+        },
+        "PersistPropertiesForEnvironment": {
+            "Type": "Custom::S3FilePut",
+            "DeletionPolicy" : "Retain",
+            "Properties": {
+                "ServiceToken": {"Fn::GetAtt": [
+                    "S3PutFileLambda",
+                    "Arn"
+                ]},
+                "Source": {
+                    "filetext":  {"Fn::Join": [
+                        "",
+                        [
+                            "<?xml version='1.0' encoding='UTF-8'?>",
+                            "<Parameters>",
+                            "<SomeConfigurationParameter>",
+                            {"Ref": "SomeConfigurationParameter"},
+                            "</SomeConfigurationParameter>",
+                            "<Environment>",
+                            {"Ref": "TargetEnvironment"},
+                            "</Environment>",
+                            "</Parameters>"
+                        ]
+                    ]},
+                    "contentType": "application/xml"
+                },
+                "Target": {
+                    "Bucket": {"Ref": "S3Bucket"},
+                    "Key": {"Fn::Join": [
+                        "",
+                            [
+                                {"Ref": "S3PutKey"},
+                                "_archive.xml"
+                            ]
+                        ]}
+                },
+                "Debug": "true"
+            }
+        },
+        "SetPropertiesForEnvironment": {
+            "Type": "Custom::S3FilePut",
+            "Properties": {
+                "ServiceToken": {"Fn::GetAtt": [
+                    "S3PutFileLambda",
+                    "Arn"
+                ]},
+                "Source": {
+                    "S3Url":  {"Fn::Join": [
+                        "",
+                        [
+                            {"Ref": "S3Bucket"},
+                            "/",
+                            {"Ref": "S3CopyKey"},
+                            "-",
+                            {"Ref": "TargetEnvironment"}
+                        ]
+                    ]}
+                },
+                "Target": {
+                    "Bucket": {"Ref": "S3Bucket"},
+                    "Key": {"Ref": "S3CopyKey"}
+                },
+                "Debug": "true"
+            }
+        }
+    },
+    "Outputs": {
+        "LambdaExecutionRoleArn": {"Value": {"Fn::GetAtt": [
+            "LambdaExecutionRole",
+            "Arn"
+        ]}}
+    }
+}

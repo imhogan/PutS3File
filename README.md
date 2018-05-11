@@ -7,7 +7,7 @@ CloudFormation template parameters you want to persist to an S3 file to configur
 option can be to copy a particular configuration file to a target file, eg you may have dev, uat and prod versions of a config file.
 The following CloudFormation template demonstrates this:
   
-  https://s3-ap-northeast-1.amazonaws.com/au-com-thinkronicity-opencode-apne1/au-com-thinkronicity-PutS3File-Sample.template
+  https://s3-ap-southeast-2.amazonaws.com/au-com-thinkronicity-opencode-apse2/au-com-thinkronicity-PutS3File-Sample-V1.0.0.template
   
   This template loads the code from a bucket in the AWS region the Stack is being deployed in. 
   
